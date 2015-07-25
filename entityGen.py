@@ -11,6 +11,7 @@ class Entity:
         self.attributes = {}
         for arg in args:
             self.attributes[arg] = []
+        # adding entity to the collection
         if entType not in Entity.instances.keys():
             Entity.instances[entType] = { self.id : self }
         else:
@@ -32,6 +33,7 @@ class Entity:
         elif not self.group and not newGroup:
             self.group = Group(Type=self.type)
             self.group.addMember(self)
+        # if the group was already set by another entity, then do nothing
 
     def getDict(self):
         if self.group:
@@ -77,7 +79,7 @@ for line in fileToRead:
     if line[mainEntity] not in Entity.instances[mainEntity].keys():
         entity = Entity(Type=mainEntity, Id=line[mainEntity], attributes)
     else:
-        # retrive entity from class collection if already existing
+        # retrieve entity from class collection if already existing
         Id = line[mainEntity]
         entity = Entity.instances[mainEntity][Id]
     
@@ -97,3 +99,11 @@ for line in fileToRead:
         
 
 fileToRead.close()
+
+# for entity in entities: main loop that takes every single main entity
+# # entity.joinGroup() 
+# # mainGroup = entity.group
+# # for attriType in entity.attributes.keys():
+# # # if not entity.attribute.checked:
+# # # # for each entity linked to the attribute: skip only entity that is calling
+# # # # # entity.joinGroup(mainGroup)
