@@ -4,18 +4,24 @@ import csv
 class Entity:
     instances = {}
     def __init__(self, Type=entType, Id=eID, *args):
-        self.type = entType
-        self.group = None
-        self.id = eID
-        self.checked = False
-        self.attributes = {}
-        for arg in args:
-            self.attributes[arg] = []
-        # adding entity to the collection
-        if entType not in Entity.instances.keys():
-            Entity.instances[entType] = { self.id : self }
+        # if entity type and id already in instances, retrieve instance
+        if eID in Entity.instances[entType].keys():
+            self = Entity.instances[entType][eID]
+        
+        # else create one entity from scratch
         else:
-            Entity.instances[entType][self.id] = self
+            self.type = entType
+            self.group = None
+            self.id = eID
+            self.checked = False
+            self.attributes = {}
+            for arg in args:
+                self.attributes[arg] = []
+            # adding entity to the collection
+            if entType not in Entity.instances.keys():
+                Entity.instances[entType] = { self.id : self }
+            else:
+                Entity.instances[entType][self.id] = self
 
     def joinGroup(self, newGroup=None):
         # 2 groups competing
@@ -40,14 +46,28 @@ class Entity:
             groupName = self.group.name
         else:
             groupName = ""
-        entityDict = {"ENTITY_TYPE" : self.type,
-                      "ENTITY_ID" : self.id,
-                      "ENTITY_GROUP" : groupName}
+        entityDict = {self.type : self.id,
+                      "GROUP" : groupName}
         return entityDict
 
-    def addAttribute(self, attrType, attrValue):
+    def linkAttribute(self, attrType, attrValue):
+        # adding both attribute value to self entity
+        # and adding self entity to attribute entity
         if attrValue not in self.attributes[attrType]:
             self.attributes[attrType].append(attrValue)
+            attribute = Entity(attrType, attrValue, self.type)
+            # !!! make sure there are no duplicates!!!!
+            attribute.attributes[self.type].append(self.id)
+    
+    def nextNodes(self):
+        # find entities corresponding to attributes and return a list of them 
+        nodesList = []
+        for attrType in self.attributes.keys():
+            for attrID in self.attributes[attrType]:
+                nextNode = Entity.instances[attrType][attrID]
+                nodeList.append(nextNode)
+
+        return nodesList
 
 
 class Group:
@@ -70,35 +90,23 @@ class Group:
             member.group = self
         del otherGroup
 
-## loading entities
-fileToRead = open("./myfile.csv", "rb")
-mainEntity = "ebay_acct"
-attributes = ("iban")
-for line in fileToRead:
-    # create new main entity if not already existing
-    if line[mainEntity] not in Entity.instances[mainEntity].keys():
+## loading entities from CSV file
+def loadEntities(fileName):
+    fileToRead = open(fileName, "rb")
+    csvReader = csv.DictReader(fileToRead)
+    mainEntity = "ebay_acct"
+    attributes = ("iban")
+    for line in fileToRead:
+        # create new main entity if not already existing
+        # or retrieve one that already exhists
         entity = Entity(Type=mainEntity, Id=line[mainEntity], attributes)
-    else:
-        # retrieve entity from class collection if already existing
-        Id = line[mainEntity]
-        entity = Entity.instances[mainEntity][Id]
-    
-    for attribute in attributes:
-        # add attributes to the entity
-        entity.addAttribute(attribute, line[attribute])
         
-        # create an entity with each attribute
-        if line[attribute] not in Entity.instances[attribute].keys():
-            attrEntity = Entity(Type=attribute, Id=line[attribute], mainEntity)
-        else:
-            Id = line[attribute]
-            attrEntity = Entity.instances[attribute][Id]
-        # add main entities in attribute that are not already present
-        # attribute entities link to main entities only, not between each other
-        attrEntity.addAttribute(mainEntity, line[mainEntity])
-        
-
-fileToRead.close()
+        for attrType in attributes:
+            # add attributes to the entity
+            # this is a two way operation, saving reference of both in each other
+            entity.linkAttribute(attrType, line[attribute])
+                
+    fileToRead.close()
 
 # for entity in entities: main loop that takes every single main entity
 # # entity.joinGroup() 
