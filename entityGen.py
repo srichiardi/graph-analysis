@@ -127,7 +127,8 @@ def loadEntities(fileName):
         mainEnt.joinGroup()
         
         for idx, attrType in enumerate(attributes):
-            attribute = Entity.getEntity(attrType, line[idx], [mainEntType])
+            colNr = idx + 1
+            attribute = Entity.getEntity(attrType, line[colNr], [mainEntType])
             # add attributes to the entity
             # this is a two way operation, saving reference of both in each other
             mainEnt.linkTo(attribute)
