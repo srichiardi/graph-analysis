@@ -56,8 +56,8 @@ class Entity:
             # and adding self entity to attribute entity
             attribute.attributes[self.type].append(self.name)
             
-        # transfer group to attribute here?
-        attribute.joinGroup(self)
+            # transfer group to attribute here?
+            attribute.joinGroup(self)
             
     
     def nextNodes(self):
@@ -79,15 +79,41 @@ class Entity:
             instance = cls(type, name, attrTypes)
             
         return instance
+    
+    
+    @classmethod
+    def loadEntities(cls, csvFileName):
+        fileToRead = open(csvFileName, "rb")
+        csvReader = csv.reader(fileToRead, delimiter=',', dialect='excel',
+                               quotechar='"')
+        # fetch headers
+        headers = csvReader.next()
+        mainEntType = headers[0]
+        attribTypes = headers[1:]
         
+        for line in csvReader:
+            # retrieve one that already exists
+            # or create new main entity if not already existing
+            mainEnt = Entity.getEntity(mainEntType, line[0], attribTypes)
+            # create new or confirm current group
+            # only main entities create groups, attributes only receive them and transfer them
+            mainEnt.joinGroup()
+            
+            for idx, attrType in enumerate(attributes):
+                colNr = idx + 1
+                attribute = Entity.getEntity(attrType, line[colNr], [mainEntType])
+                # add attributes to the entity, and join same group
+                mainEnt.linkTo(attribute)
+                    
+        fileToRead.close()
 
 
 class Group:
-    groupCount = 0
+    __groupCount = 0
     def __init__(self):
-        groupCount += 1
+        __groupCount += 1
         self.members = []
-        self.name = "G%d" % groupCount
+        self.name = "G%d" % __groupCount
         self.size = 0
 
 
@@ -106,39 +132,3 @@ class Group:
         # remove empty group
         del otherGroup
 
-
-
-## loading entities from CSV file
-def loadEntities(fileName):
-    fileToRead = open(fileName, "rb")
-    csvReader = csv.reader(fileToRead, restval='', delimiter=',', dialect='excel',
-                           quotechar='"')
-    # fetch headers
-    headers = csvReader.next()
-    mainEntType = headers[0]
-    attribTypes = headers[1:]
-    
-    for line in csvReader:
-        # retrieve one that already exists
-        # or create new main entity if not already existing
-        mainEnt = Entity.getEntity(mainEntType, line[0], attribTypes)
-        # create new or confirm current group
-        # only main entities create groups, attributes only receive them and transfer them
-        mainEnt.joinGroup()
-        
-        for idx, attrType in enumerate(attributes):
-            colNr = idx + 1
-            attribute = Entity.getEntity(attrType, line[colNr], [mainEntType])
-            # add attributes to the entity
-            # this is a two way operation, saving reference of both in each other
-            mainEnt.linkTo(attribute)
-                
-    fileToRead.close()
-
-# for entity in entities: main loop that takes every single main entity
-# # entity.joinGroup() 
-# # mainGroup = entity.group
-# # for attriType in entity.attributes.keys():
-# # # if not entity.attribute.checked:
-# # # # for each entity linked to the attribute: skip only entity that is calling
-# # # # # entity.joinGroup(mainGroup)
