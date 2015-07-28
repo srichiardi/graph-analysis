@@ -1,7 +1,10 @@
+from weakref import WeakValueDictionary
 import csv
+import sys
 
 
 class Entity:
+    __mainEntityType = ''
     __instances = {}
     def __init__(self, entType, entName, attrTypes=[]):
         self.type = entType
@@ -18,7 +21,7 @@ class Entity:
         
 
     def joinGroup(self, alienEntity=None):
-        # 2 different groups competing
+        ''' 2 different groups competing '''
         if self.group and alienEntity.group and (self.group.name != alienEntity.group.name):
             # negotiate which group to choose and move the members
             # local group wins
@@ -50,18 +53,18 @@ class Entity:
     
 
     def linkTo(self, attribute):
-        # adding attribute value to self entity
+        ''' linking main entity to attribute entity '''
         if attribute.name not in self.attributes[attribute.type]:
             self.attributes[attribute.type].append(attribute.name)
             # and adding self entity to attribute entity
             attribute.attributes[self.type].append(self.name)
             
-            # transfer group to attribute here?
+            # negotiate group with attribute
             attribute.joinGroup(self)
             
     
     def nextNodes(self):
-        # find entities corresponding to attributes and return a list of them 
+        ''' finds entities directly linked to the current one and returns a list '''
         nodesList = []
         for attrType in self.attributes.keys():
             for attrID in self.attributes[attrType]:
@@ -73,6 +76,7 @@ class Entity:
     
     @classmethod
     def getEntity(cls, type, name, attrTypes):
+        ''' method to check if an entity exists before creating one '''
         try:
             instance = cls.__instances[type][name]
         except KeyError:
@@ -83,6 +87,8 @@ class Entity:
     
     @classmethod
     def loadEntities(cls, csvFileName):
+        ''' take a CSV file as input, reads it and create main and attribute entities,
+        groups and links in between '''
         fileToRead = open(csvFileName, "rb")
         csvReader = csv.reader(fileToRead, delimiter=',', dialect='excel',
                                quotechar='"')
@@ -90,6 +96,11 @@ class Entity:
         headers = csvReader.next()
         mainEntType = headers[0]
         attribTypes = headers[1:]
+        
+        # in case of second import, exit if main entity type doesn't match 
+        if Entity.__mainEntityType != '' and Entity.__mainEntityType != mainEntType:
+            fileToRead.close()
+            sys.exit("Main Entity conflict: please double check the data being imported!")
         
         for line in csvReader:
             # retrieve one that already exists
@@ -106,15 +117,32 @@ class Entity:
                 mainEnt.linkTo(attribute)
                     
         fileToRead.close()
+        
+        
+    @classmethod
+    def printStats(cls):
+        ''' providing information on all groups:
+        nr of main entities, tot nr of groups, nr of groups with more than 50 main entities,
+        nr of groups with less than 2 main entities (unlinked potentially linkable),
+        attribute entities linked to many main entities (most popular)... '''
+        pass
+    
+    
+    @classmethod
+    def exportToFile(cls):
+        ''' print main entities, relative attributes and groups they belong in CSV format. '''
+        pass
 
 
 class Group:
-    __groupCount = 0
+    __groupCount = 0 # for naming purpose only
+    __groupInstances = WeakValueDictionary()
     def __init__(self):
         __groupCount += 1
         self.members = []
         self.name = "G%d" % __groupCount
         self.size = 0
+        Group.__groupInstances[self.name] = self
 
 
     def addMember(self, newMember):
@@ -124,11 +152,20 @@ class Group:
 
 
     def annexGroup(self, otherGroup):
-        # transfer members from one group to another
-        # and update members' group membership
+        ''' transfer members from one group to another
+        and update members' group membership '''
         for member in otherGroup.members:
             self.addMember(member)
             member.group = self
         # remove empty group
         del otherGroup
+        
+    
+    def getMembersByType(self, membType):
+        ''' return a list of all members belonging to the same entity type '''
+        memberList = []
+        for member in self.members:
+            if member.type == membType:
+                memberList.append(member)
+        return memberList
 
