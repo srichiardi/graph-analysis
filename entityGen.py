@@ -1,6 +1,7 @@
 from weakref import WeakValueDictionary
 import csv
 import sys
+from docutils.transforms.peps import Headers
 
 
 class Entity:
@@ -168,4 +169,27 @@ class Group:
             if member.type == membType:
                 memberList.append(member)
         return memberList
+    
+    
+    def getGroupDicts(self, mainEntityType):
+        ''' return a list of dictionaries ready to be passed to CSV DictWriter '''
+        dictList = []
+        for member in self.members:
+            nextAttr = True
+            while nextAttr == True:
+                tempDict = {}
+                nextAttr = False
+                tempDict[mainEntityType] = member.name
+                for key in member.attributes.keys():
+                    try:
+                        value = member.attributes[key].pop()
+                        nextAttr = True
+                    except IndexError:
+                        value = ''
+                    finally:
+                        tempDict[key] = value
+                if nextAttr:
+                    dictList.append(tempDict)
+                    
+        return dictList
 
