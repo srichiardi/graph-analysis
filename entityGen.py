@@ -139,6 +139,7 @@ class Entity:
             mainEnt = Entity.getEntity(mainEntType, line[0], attribTypes)
             # only main entities create groups, attributes receive them and transfer them
             # if a GROUP header exists, assign it at import stage
+# !!! CHECK IF GROUP IMPORT MAKES SENSE !!!
             if Entity.__groupType in attribTypes:
                 gIdx = attribTypes.index(Entity.__groupType) + 1
                 importedGroup = Group.getGroupByName(line[gIdx])
