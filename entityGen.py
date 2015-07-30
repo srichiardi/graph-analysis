@@ -6,7 +6,7 @@ import sys
 class Entity:
     __mainEntityType = ''
     __attributeTypes = []
-    __groupType = 'GROUP'
+    __groupType = 'ENTYTHON_GROUP'
     __instances = {}
     
     
@@ -117,43 +117,52 @@ class Entity:
                                quotechar='"')
         # fetch headers
         headers = csvReader.next()
-        mainEntType = headers[0]
-        attribTypes = headers[1:]
         
-        # in case of second import, exit if main entity type doesn't match 
-        if Entity.__mainEntityType != '' and Entity.__mainEntityType != mainEntType:
-            fileToRead.close()
-            sys.exit("Main Entity conflict: please double check the data being imported!")
-        # or if first import, assign main entity type to class variable
-        elif Entity.__mainEntityType == '':
-            Entity.__mainEntityType = mainEntType
+        # map headers to columns with dictionary comprehension
+        headerDict = { value : idx for idx, value in enumerate(headers)}
         
-        # updating the class var attribute types with new types during first and later imports
-        for attribType in attribTypes:
-            if attribType not in Entity.__attributeTypes:
-                Entity.__attributeTypes.append(attribType)
+        # if first import, look for main entity type in header
+        if cls.__mainEntityType == '':
+            cls.__mainEntityType = headers[0]
+            mei = 0 # Main Entity Index 
+        # in case of second and subsequent imports
+        else:
+            # try to locate the main entity column
+            try:
+                mei = headers.index(cls.__mainEntityType)
+            # if missing raise an error and quit
+            except ValueError:
+                fileToRead.close()
+                sys.exit("Main Entity conflict: the main entity type is not consistent!")
         
+        met = cls.__mainEntityType # main entity type "met" for short
+        
+        # remove main entity from dictionary for iteration through attributes only 
+        headerDict.pop(met)
+        
+        # remove group type from dictionary: ignoring old groups to avoid them be considered attributes
+        if cls.__groupType in headerDict.keys():
+            headerDict.pop(cls.__groupType)
+
+        aTypes = headerDict.values()
+        
+        # update the class var listing all attribute types, including new from later imports
+        for attrType in aTypes:
+            if attrType not in cls.__attributeTypes:
+                cls.__attributeTypes.append(attrType)
+
+        # main import loop begins
         for line in csvReader:
-            # retrieve one that already exists
-            # or create new main entity if not already existing
-            mainEnt = Entity.getEntity(mainEntType, line[0], attribTypes)
+            mainEnt = Entity.getEntity(met, line[mei], aTypes)
+            # assign new group (or confirm current)
             # only main entities create groups, attributes receive them and transfer them
-            # if a GROUP header exists, assign it at import stage
-# !!! CHECK IF GROUP IMPORT MAKES SENSE !!!
-            if Entity.__groupType in attribTypes:
-                gIdx = attribTypes.index(Entity.__groupType) + 1
-                importedGroup = Group.getGroupByName(line[gIdx])
-                mainEnt.joinGroup(importedGroup)
-            # create new or confirm current group
-            # when no GROUP header is in the imported file
-            else:
-                mainEnt.joinGroup()
- 
-            for idx, attrType in enumerate(attributes):
-                colNr = idx + 1
-                attribute = Entity.getEntity(attrType, line[colNr], [mainEntType])
+            mainEnt.joinGroup()
+            
+            for attrType in aTypes:
+                idx = headerDict[attrType]
+                attribute = cls.getEntity(attrType, line[idx], [met])
                 # add attributes to the entity, and join same group
-                mainEnt.linkTo(attribute)
+                mainEnt.linkTo(attribute) 
                     
         fileToRead.close()
         
@@ -173,16 +182,16 @@ class Entity:
         fileName = folderPath + "/entithon_export_%s.csv" % datetime.now().strftime("%Y%m%d_%H-%M-%S")
         csvFileToWrite = open(fileName, 'ab')
         
-        fieldNames = [Entity.__mainEntityType]
-        fieldNames.extend(Entity.__attributeTypes)
-        fieldNames.append(Entity.__groupType)
+        fieldNames = [cls.__mainEntityType]
+        fieldNames.extend(cls.__attributeTypes)
+        fieldNames.append(cls.__groupType)
         
         csvWriter = csv.DictWriter(csvFileToWrite, fieldNames, restval='', delimiter=',',
                                    extrasaction='ignore', dialect='excel', quotechar='"')
         csvWriter.writeheader()
         # iterate through main entities
-        for entity in Entity.__instances[Entity.__mainEntityType].values():
-            entityRecords = entity.getPrintableDicts()
+        for entity in cls.__instances[cls.__mainEntityType].values():
+            entityRecords = cls.getPrintableDicts()
             csvWriter.writerows(entityRecords)
             
         csvFileToWrite.close()
@@ -193,13 +202,10 @@ class Group:
     __groupInstances = WeakValueDictionary()
     
     
-    def __init__(self, name=None):
+    def __init__(self):
         __groupCount += 1
         self.members = []
-        if name:
-            self.name = name
-        else:
-            self.name = "G-%d" % __groupCount
+        self.name = "G-%d" % __groupCount
         self.size = 0
         Group.__groupInstances[self.name] = self
 
@@ -237,6 +243,6 @@ class Group:
             group = cls.__groupInstances[groupName]
         # new group with old imported name
         except KeyError:
-            group = cls(groupName)
+            group = cls()
         return group
     
