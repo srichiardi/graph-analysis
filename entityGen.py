@@ -119,7 +119,7 @@ class Entity:
         headers = csvReader.next()
         
         # map headers to columns with dictionary comprehension
-        headerDict = { value : idx for idx, value in enumerate(headers)}
+        headerDict = { value : idx for idx, value in enumerate(headers) }
         
         # if first import, look for main entity type in header
         if cls.__mainEntityType == '':
@@ -133,7 +133,8 @@ class Entity:
             # if missing raise an error and quit
             except ValueError:
                 fileToRead.close()
-                sys.exit("Main Entity conflict: the main entity type is not consistent!")
+                sys.exit("Main Entity mismatch:\n\
+                the main entity type is not consistent or missing!")
         
         met = cls.__mainEntityType # main entity type "met" for short
         
@@ -144,7 +145,7 @@ class Entity:
         if cls.__groupType in headerDict.keys():
             headerDict.pop(cls.__groupType)
 
-        aTypes = headerDict.values()
+        aTypes = headerDict.keys()
         
         # update the class var listing all attribute types, including new from later imports
         for attrType in aTypes:
