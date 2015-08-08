@@ -4,7 +4,7 @@ import sys
 
 
 class Entity:
-    __mainEntityType = ''
+    __mainEntityTypes = []
     __attributeTypes = []
     __groupType = 'ENTYTHON_GROUP'
     __instances = {}
@@ -104,6 +104,10 @@ class Entity:
             instance = cls.__instances[type][name]
         except KeyError:
             instance = cls(type, name, attrTypes)
+        else:
+            for aType in attrTypes:
+                if aType not in instance.attributes.keys():
+                    instance.attributes[aType] = []
             
         return instance
     
@@ -118,25 +122,16 @@ class Entity:
         # fetch headers
         headers = csvReader.next()
         
+        #
+        if len(headers) < 2:
+            sys.exit('Import error: not enough columns in the imported file!')
+        
         # map headers to columns with dictionary comprehension
         headerDict = { value : idx for idx, value in enumerate(headers) }
         
-        # if first import, look for main entity type in header
-        if cls.__mainEntityType == '':
-            cls.__mainEntityType = headers[0]
-            mei = 0 # Main Entity Index 
-        # in case of second and subsequent imports
-        else:
-            # try to locate the main entity column
-            try:
-                mei = headers.index(cls.__mainEntityType)
-            # if missing raise an error and quit
-            except ValueError:
-                fileToRead.close()
-                sys.exit("Main Entity mismatch:\n\
-                the main entity type is not consistent or missing!")
+        met = headers[0] # Main Entity Type, "met" for short, is always the first column
         
-        met = cls.__mainEntityType # main entity type "met" for short
+        cls.__mainEntityTypes.append(met)
         
         # remove main entity from dictionary for iteration through attributes only 
         headerDict.pop(met)
@@ -154,7 +149,10 @@ class Entity:
 
         # main import loop begins
         for line in csvReader:
-            mainEnt = Entity.getEntity(met, line[mei], aTypes)
+            # skip line if main entity is empty
+            if line[0] == "": continue
+            
+            mainEnt = Entity.getEntity(met, line[0], aTypes)
             # assign new group (or confirm current)
             # only main entities create groups, attributes receive them and transfer them
             mainEnt.joinGroup()
