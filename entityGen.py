@@ -6,7 +6,7 @@ import sys
 class Entity:
     __mainEntityTypes = []
     __attributeTypes = []
-    __groupType = 'ENTYTHON_GROUP'
+    __passportHeaders = ["ENTYTHON_GROUP", "ENTITY_TYPE", "ENTITY_ID"]
     __instances = {}
     
     
@@ -46,6 +46,7 @@ class Entity:
 
     
     def getPrintableDicts(self):
+        ''' arrange dicts: ENTYTHON_GRUOP | MET | ME_ID | ATTR_1 | ATTR_2 | ... '''
         if self.group:
             groupName = self.group.name
         else:
@@ -57,8 +58,9 @@ class Entity:
         while nextAttr == True:
             tempDict = {}
             nextAttr = False
-            tempDict = { self.type : self.name,
-                        Entity.__groupType : groupName }
+            tempDict = { Entity.__passportHeaders[0] : groupName,
+                        Entity.__passportHeaders[1] : self.type,
+                        Entity.__passportHeaders[2] : self.name }
             
             for key in self.attributes.keys():
                 try:
@@ -87,7 +89,7 @@ class Entity:
             
     
     def nextNodes(self):
-        ''' finds entities directly linked to the current one and returns a list '''
+        ''' returns a list of attribute entities directly linked to the current one '''
         nodesList = []
         for attrType in self.attributes.keys():
             for attrID in self.attributes[attrType]:
@@ -104,6 +106,7 @@ class Entity:
             instance = cls.__instances[type][name]
         except KeyError:
             instance = cls(type, name, attrTypes)
+        # make sure to add new attributes if not previously included
         else:
             for aType in attrTypes:
                 if aType not in instance.attributes.keys():
@@ -146,24 +149,35 @@ class Entity:
         for attrType in aTypes:
             if attrType not in cls.__attributeTypes:
                 cls.__attributeTypes.append(attrType)
+                
+        # Main Entity Count
+        mec = 0
 
         # main import loop begins
         for line in csvReader:
             # skip line if main entity is empty
-            if line[0] == "": continue
+            if line[0] == "":
+                continue
             
-            mainEnt = Entity.getEntity(met, line[0], aTypes)
+            mainEnt = cls.getEntity(met, line[0], aTypes)
+            mec += 1
             # assign new group (or confirm current)
             # only main entities create groups, attributes receive them and transfer them
             mainEnt.joinGroup()
             
             for attrType in aTypes:
                 idx = headerDict[attrType]
+                # skip if attribute is empty
+                if line[idx] == "":
+                    continue
+                
                 attribute = cls.getEntity(attrType, line[idx], [met])
                 # add attributes to the entity, and join same group
                 mainEnt.linkTo(attribute) 
                     
         fileToRead.close()
+        
+        print "Import completed. Imported %d entities type %s." % (mec, met)
         
         
     @classmethod
@@ -181,19 +195,20 @@ class Entity:
         fileName = folderPath + "/entithon_export_%s.csv" % datetime.now().strftime("%Y%m%d_%H-%M-%S")
         csvFileToWrite = open(fileName, 'ab')
         
-        fieldNames = [cls.__mainEntityType]
+        fieldNames.extend(cls.__passportHeaders)
         fieldNames.extend(cls.__attributeTypes)
-        fieldNames.append(cls.__groupType)
         
         csvWriter = csv.DictWriter(csvFileToWrite, fieldNames, restval='', delimiter=',',
                                    extrasaction='ignore', dialect='excel', quotechar='"')
         csvWriter.writeheader()
         # iterate through main entities
-        for entity in cls.__instances[cls.__mainEntityType].values():
-            entityRecords = cls.getPrintableDicts()
-            csvWriter.writerows(entityRecords)
+        for mainEntityType in cls.__mainEntityTypes:
+            for entity in cls.__instances[mainEntityType].values():
+                entityRecords = entity.getPrintableDicts()
+                csvWriter.writerows(entityRecords)
             
         csvFileToWrite.close()
+        
 
 
 class Group:
