@@ -1,4 +1,5 @@
 from weakref import WeakValueDictionary
+from datetime import datetime
 import csv
 import sys
 
@@ -94,18 +95,18 @@ class Entity:
         for attrType in self.attributes.keys():
             for attrID in self.attributes[attrType]:
                 nextNode = Entity.__instances[attrType][attrID]
-                nodeList.append(nextNode)
+                nodesList.append(nextNode)
 
         return nodesList
     
     
     @classmethod
-    def getEntity(cls, type, name, attrTypes):
+    def getEntity(cls, meType, name, attrTypes):
         ''' method to check if an entity exists before creating one '''
         try:
-            instance = cls.__instances[type][name]
+            instance = cls.__instances[meType][name]
         except KeyError:
-            instance = cls(type, name, attrTypes)
+            instance = cls(meType, name, attrTypes)
         # make sure to add new attributes if not previously included
         else:
             for aType in attrTypes:
@@ -195,7 +196,7 @@ class Entity:
         fileName = folderPath + "/entithon_export_%s.csv" % datetime.now().strftime("%Y%m%d_%H-%M-%S")
         csvFileToWrite = open(fileName, 'ab')
         
-        fieldNames.extend(cls.__passportHeaders)
+        fieldNames = cls.__passportHeaders
         fieldNames.extend(cls.__attributeTypes)
         
         csvWriter = csv.DictWriter(csvFileToWrite, fieldNames, restval='', delimiter=',',
@@ -217,9 +218,9 @@ class Group:
     
     
     def __init__(self):
-        __groupCount += 1
+        Group.__groupCount += 1
         self.members = []
-        self.name = "G-%d" % __groupCount
+        self.name = "G-%d" % Group.__groupCount
         self.size = 0
         Group.__groupInstances[self.name] = self
 
@@ -227,7 +228,7 @@ class Group:
     def addMember(self, newMember):
         ''' add new group member entities to the group list '''
         if newMember not in self.members:
-            self.members.append(member)
+            self.members.append(newMember)
             self.size += 1
 
 
