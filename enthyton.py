@@ -27,23 +27,25 @@ class Entity:
 
     def joinGroup(self, alienEntity=None):
         ''' 2 different groups competing '''
-        if self.group and alienEntity.group and (self.group.name != alienEntity.group.name):
-            # negotiate which group to choose and move the members
-            # local group wins
-            if self.group.size >= alienEntity.group.size:
-                self.group.annexGroup(alienEntity.group)
-            # alien group wins
-            else:
-                alienEntity.group.annexGroup(self.group)
-        # assigning other group if no own group is set
-        elif not self.group and alienEntity.group:
-            self.group = alienEntity.group
-            self.group.addMember(self)
+        # if another entity is being declared as argument of the function
+        if alienEntity:
+            # if both groups are set and are not the same negotiate which group to choose
+            if self.group and alienEntity.group and (self.group.name != alienEntity.group.name):
+                # local group wins
+                if self.group.size >= alienEntity.group.size:
+                    self.group.annexGroup(alienEntity.group)
+                # alien group wins
+                else:
+                    alienEntity.group.annexGroup(self.group)
+            # if only the imported entity has a group set alien group wins
+            elif not self.group and alienEntity.group:
+                self.group = alienEntity.group
+                self.group.addMember(self)
         # assigning his own new group if both local and alien groups are none
-        elif not self.group and not alienEntity.group:
+        elif not self.group:
             self.group = Group()
             self.group.addMember(self)
-        # if the group was already set by another entity, then do nothing
+        # if the group was already set then do nothing
 
     
     def getPrintableDicts(self):
