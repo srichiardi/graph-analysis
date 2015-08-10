@@ -125,7 +125,7 @@ class Entity:
         # fetch headers
         headers = csvReader.next()
         
-        #
+        # quit the process if file contains less than 2 columns
         if len(headers) < 2:
             sys.exit('Import error: not enough columns in the imported file!')
         
