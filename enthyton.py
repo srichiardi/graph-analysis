@@ -141,8 +141,8 @@ class Entity:
         headerDict.pop(met)
         
         # remove group type from dictionary: ignoring old groups to avoid them be considered attributes
-        if cls.__groupType in headerDict.keys():
-            headerDict.pop(cls.__groupType)
+        if cls.__passportHeaders[0] in headerDict.keys():
+            headerDict.pop(cls.__passportHeaders[0])
 
         aTypes = headerDict.keys()
         
