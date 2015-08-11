@@ -12,8 +12,8 @@ class Entity:
     
     
     def __init__(self, entType, entName, attrTypes=[]):
-        self.type = entType
-        self.name = entName
+        self.type = entType.strip().upper() # clean up the string for consistency
+        self.name = entName.strip().lower() # clean up the string for consistency
         self.group = None
         self.attributes = {}
         for item in attrTypes:
@@ -22,7 +22,7 @@ class Entity:
         try:
             Entity.__instances[self.type][self.name] = self
         except KeyError:
-            Entity.__instances[self.type] = { self.name : self}
+            Entity.__instances[self.type] = { self.name : self }
         
 
     def joinGroup(self, alienEntity=None):
@@ -127,6 +127,7 @@ class Entity:
                                quotechar='"')
         # fetch headers
         headers = csvReader.next()
+        headers = [x.strip().upper() for x in headers] # making sure entity types are consistent
         
         # quit the process if file contains less than 2 columns
         if len(headers) < 2:
@@ -180,7 +181,9 @@ class Entity:
                     
         fileToRead.close()
         
-        print "Import completed. Imported %d entities type %s." % (mec, met)
+        gNr = len(Group._Group__groupInstances)
+        
+        print 'Import completed. Imported %d entities type "%s", %d group(s).' % (mec, met, gNr)
         
         
     @classmethod
